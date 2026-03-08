@@ -77,11 +77,42 @@ body {
   max-width: 68%;
 }
 
+.hud-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .hud-stats {
   display: flex;
   gap: 10px;
   font-size: clamp(0.78rem, 1.2vw, 0.98rem);
   white-space: nowrap;
+}
+
+.stop-btn {
+  padding: 5px 12px;
+  font-size: clamp(0.7rem, 1.1vw, 0.88rem);
+  color: #fff8ea;
+  background: linear-gradient(90deg, #ff6c50, #ff9a57);
+  box-shadow: none;
+}
+
+.difficulty-row {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  font-size: 0.95rem;
+  color: #d5ecff;
+}
+
+.difficulty-row select {
+  border: 1px solid rgba(173, 223, 255, 0.35);
+  border-radius: 8px;
+  background: rgba(10, 25, 48, 0.85);
+  color: #eef8ff;
+  font: inherit;
+  padding: 6px 8px;
 }
 
 #gameCanvas {
@@ -182,6 +213,11 @@ button:hover {
   .hud-stats {
     font-size: clamp(0.62rem, 2.4vw, 0.8rem);
     gap: 6px;
+  }
+
+  .stop-btn {
+    padding: 4px 8px;
+    font-size: 0.68rem;
   }
 
   .motivation {

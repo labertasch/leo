@@ -30,11 +30,14 @@
 
           <header class="hud-top">
             <h1>Solar Kids For Leo Teoman Taş</h1>
-            <div class="hud-stats">
-              <span>Level: <strong id="levelCount">1</strong></span>
-              <span>Lives: <strong id="livesCount">3</strong></span>
-              <span>Stars: <strong id="starsCount">0</strong></span>
-              <span>Friendly Bumps: <strong id="bumpsCount">0</strong></span>
+            <div class="hud-right">
+              <div class="hud-stats">
+                <span>Level: <strong id="levelCount">1</strong></span>
+                <span>Lives: <strong id="livesCount">3</strong></span>
+                <span>Stars: <strong id="starsCount">0</strong></span>
+                <span>Friendly Bumps: <strong id="bumpsCount">0</strong></span>
+              </div>
+              <button id="stopBtn" class="stop-btn" type="button">Stop</button>
             </div>
           </header>
           <div class="motivation" id="motivationMsg" aria-live="polite"></div>
@@ -44,6 +47,14 @@
             <p>Keyboard: Arrow keys or WASD</p>
             <p>Mouse: Move pointer and rocket follows it</p>
             <p>Collect stars, avoid asteroids, and wave to every planet.</p>
+            <label class="difficulty-row" for="difficultySelect">
+              Difficulty
+              <select id="difficultySelect">
+                <option value="easy">Easy</option>
+                <option value="medium" selected>Medium</option>
+                <option value="profi">Profi</option>
+              </select>
+            </label>
             <button id="startBtn">Start Mission</button>
           </section>
         </div>

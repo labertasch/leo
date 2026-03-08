@@ -8,12 +8,64 @@ const livesLabel = document.getElementById("livesCount");
 const motivationMsg = document.getElementById("motivationMsg");
 const startPanel = document.getElementById("startPanel");
 const startBtn = document.getElementById("startBtn");
+const stopBtn = document.getElementById("stopBtn");
+const difficultySelect = document.getElementById("difficultySelect");
 const panelTitle = startPanel.querySelector("h2");
 const panelLines = Array.from(startPanel.querySelectorAll("p"));
+
+const DIFFICULTIES = {
+  easy: {
+    lives: 4,
+    levelDurationMs: 24000,
+    startAsteroids: 2,
+    maxAsteroids: 7,
+    asteroidGrowthEveryLevels: 3,
+    asteroidSpawnBaseMs: 2800,
+    asteroidSpawnDropPerLevelMs: 90,
+    asteroidSpawnMinMs: 1300,
+    cometIntervalBaseMs: 12000,
+    cometIntervalDropPerLevelMs: 900,
+    cometIntervalMinMs: 2500,
+    cometBurstLevel3: 2,
+    cometBurstLevel4: 3,
+  },
+  medium: {
+    lives: 3,
+    levelDurationMs: 20000,
+    startAsteroids: 2,
+    maxAsteroids: 10,
+    asteroidGrowthEveryLevels: 2,
+    asteroidSpawnBaseMs: 2400,
+    asteroidSpawnDropPerLevelMs: 120,
+    asteroidSpawnMinMs: 1100,
+    cometIntervalBaseMs: 10000,
+    cometIntervalDropPerLevelMs: 1300,
+    cometIntervalMinMs: 1400,
+    cometBurstLevel3: 3,
+    cometBurstLevel4: 6,
+  },
+  profi: {
+    lives: 3,
+    levelDurationMs: 17000,
+    startAsteroids: 3,
+    maxAsteroids: 12,
+    asteroidGrowthEveryLevels: 2,
+    asteroidSpawnBaseMs: 2100,
+    asteroidSpawnDropPerLevelMs: 140,
+    asteroidSpawnMinMs: 850,
+    cometIntervalBaseMs: 9000,
+    cometIntervalDropPerLevelMs: 1400,
+    cometIntervalMinMs: 1100,
+    cometBurstLevel3: 4,
+    cometBurstLevel4: 6,
+  },
+};
 
 const state = {
   running: false,
   gameOver: false,
+  paused: false,
+  difficulty: "medium",
   lastTs: 0,
   startTs: 0,
   starsCollected: 0,
@@ -22,7 +74,7 @@ const state = {
   level: 1,
   lastAsteroidSpawnTs: 0,
   lastCometSpawnTs: 0,
-  nextLevelTs: 22000,
+  nextLevelTs: 20000,
   messageTimeout: null,
   lastCaptainMsgBucket: -1,
 };
@@ -71,7 +123,7 @@ const funnyMessages = [
   "Great job, Space Captain!",
   "Leo turbo mode activated!",
   "Asteroid dodger level: pro.",
-  "Taş power keeps this ship flying.",
+  "Tas power keeps this ship flying.",
   "Moon says: keep going!",
 ];
 
@@ -89,6 +141,10 @@ engineLoop.loop = true;
 engineLoop.preload = "auto";
 engineLoop.volume = 0.08;
 engineLoop.playbackRate = 0.85;
+
+function getSettings() {
+  return DIFFICULTIES[state.difficulty] || DIFFICULTIES.medium;
+}
 
 function showMessage(text, duration = 2600) {
   if (!motivationMsg) return;
@@ -133,8 +189,8 @@ function spawnAsteroid() {
 function spawnComet() {
   const side = Math.floor(Math.random() * 4);
   const margin = 50;
-  let x = 0;
-  let y = 0;
+  let x;
+  let y;
 
   if (side === 0) {
     x = -margin;
@@ -167,11 +223,12 @@ function spawnComet() {
 }
 
 function resetEntities() {
+  const settings = getSettings();
   collectibles.length = 0;
   asteroids.length = 0;
   comets.length = 0;
   for (let i = 0; i < 8; i += 1) spawnCollectible();
-  for (let i = 0; i < 10; i += 1) spawnAsteroid();
+  for (let i = 0; i < settings.startAsteroids; i += 1) spawnAsteroid();
 }
 
 function updateHud() {
@@ -185,16 +242,24 @@ function renderStartPanelForIntro() {
   panelTitle.textContent = "Fly To The Stars";
   panelLines[0].textContent = "Keyboard: Arrow keys or WASD";
   panelLines[1].textContent = "Mouse: Move pointer and rocket follows it";
-  panelLines[2].textContent = "Collect stars, avoid asteroids, dodge comets.";
+  panelLines[2].textContent = "Choose difficulty and start your mission.";
   startBtn.textContent = "Start Mission";
 }
 
 function renderStartPanelForGameOver() {
   panelTitle.textContent = "Game Over";
   panelLines[0].textContent = `You reached Level ${state.level} and collected ${state.starsCollected} stars.`;
-  panelLines[1].textContent = "Comets hit 3 times. Mission ended.";
-  panelLines[2].textContent = "Press restart for another run.";
+  panelLines[1].textContent = "Comets hit too many times. Mission ended.";
+  panelLines[2].textContent = "Choose difficulty and restart.";
   startBtn.textContent = "Restart Mission";
+}
+
+function renderStartPanelForPause() {
+  panelTitle.textContent = "Mission Paused";
+  panelLines[0].textContent = "Take a break and continue when ready.";
+  panelLines[1].textContent = `Current level ${state.level}, stars ${state.starsCollected}.`;
+  panelLines[2].textContent = "Difficulty applies on next new mission.";
+  startBtn.textContent = "Resume Mission";
 }
 
 function beep({ freq = 440, type = "sine", duration = 0.12, gain = 0.08, slide = 0 }) {
@@ -234,9 +299,7 @@ function startAudio() {
   }
 
   beep({ freq: 330, type: "triangle", duration: 0.16, gain: 0.11, slide: 140 });
-  setTimeout(() => {
-    beep({ freq: 520, type: "triangle", duration: 0.14, gain: 0.1, slide: 70 });
-  }, 90);
+  setTimeout(() => beep({ freq: 520, type: "triangle", duration: 0.14, gain: 0.1, slide: 70 }), 90);
 }
 
 function updateEngineSound() {
@@ -458,9 +521,7 @@ function updateRocket(dt) {
   rocket.y += rocket.vy * dt;
   keepInBounds();
 
-  if (Math.hypot(rocket.vx, rocket.vy) > 2) {
-    rocket.angle = Math.atan2(rocket.vy, rocket.vx);
-  }
+  if (Math.hypot(rocket.vx, rocket.vy) > 2) rocket.angle = Math.atan2(rocket.vy, rocket.vx);
 }
 
 function distance(a, b) {
@@ -506,11 +567,8 @@ function handleCollisions() {
       livesLabel.textContent = String(Math.max(0, state.lives));
       applyFriendlyBump(c);
       beep({ freq: 130, type: "sawtooth", duration: 0.2, gain: 0.12, slide: -40 });
-      if (state.lives > 0) {
-        showMessage(`Comet hit! ${state.lives} lives left.`, 2600);
-      } else {
-        endGame();
-      }
+      if (state.lives > 0) showMessage(`Comet hit! ${state.lives} lives left.`, 2600);
+      else endGame();
     }
   }
 }
@@ -531,31 +589,44 @@ function updateComets(dt) {
     c.x += c.vx * dt;
     c.y += c.vy * dt;
 
-    if (
-      c.x < -120 ||
-      c.x > canvas.width + 120 ||
-      c.y < -120 ||
-      c.y > canvas.height + 120
-    ) {
+    if (c.x < -120 || c.x > canvas.width + 120 || c.y < -120 || c.y > canvas.height + 120) {
       comets.splice(i, 1);
     }
   }
 }
 
 function updateDifficulty(ts) {
+  const settings = getSettings();
   const elapsed = ts - state.startTs;
-  const targetAsteroids = Math.min(24, 10 + (state.level - 1) * 2);
+  const targetAsteroids = Math.min(
+    settings.maxAsteroids,
+    settings.startAsteroids + Math.floor((state.level - 1) / settings.asteroidGrowthEveryLevels)
+  );
 
-  if (asteroids.length < targetAsteroids && ts - state.lastAsteroidSpawnTs > 1500) {
+  const asteroidSpawnInterval = Math.max(
+    settings.asteroidSpawnMinMs,
+    settings.asteroidSpawnBaseMs - (state.level - 1) * settings.asteroidSpawnDropPerLevelMs
+  );
+  if (asteroids.length < targetAsteroids && ts - state.lastAsteroidSpawnTs > asteroidSpawnInterval) {
     spawnAsteroid();
     state.lastAsteroidSpawnTs = ts;
   }
 
-  const cometInterval = Math.max(5000, 12000 - (state.level - 1) * 700);
+  const cometInterval = Math.max(
+    settings.cometIntervalMinMs,
+    settings.cometIntervalBaseMs - (state.level - 1) * settings.cometIntervalDropPerLevelMs
+  );
   if (ts - state.lastCometSpawnTs > cometInterval) {
-    spawnComet();
+    let cometBurst = 1;
+    if (state.level >= 4) cometBurst = settings.cometBurstLevel4;
+    else if (state.level >= 3) cometBurst = settings.cometBurstLevel3;
+
+    for (let i = 0; i < cometBurst; i += 1) spawnComet();
     state.lastCometSpawnTs = ts;
-    showMessage("Hostile comet incoming!", 1800);
+    showMessage(
+      cometBurst > 1 ? `Comet wave x${cometBurst} incoming!` : "Hostile comet incoming!",
+      1800
+    );
   }
 
   if (elapsed >= state.nextLevelTs) {
@@ -566,9 +637,8 @@ function updateDifficulty(ts) {
       a.vy *= 1.08;
     });
     spawnAsteroid();
-    spawnAsteroid();
-    state.nextLevelTs += 20000;
-    showMessage(`Level ${state.level}! Faster space traffic!`, 3000);
+    state.nextLevelTs += settings.levelDurationMs;
+    showMessage(`Level ${state.level}! Comets are getting wilder!`, 3000);
   }
 
   if (state.starsCollected >= 20) {
@@ -581,6 +651,8 @@ function updateDifficulty(ts) {
 }
 
 function frame(ts) {
+  if (!state.running) return;
+
   const dt = Math.min(0.033, (ts - state.lastTs) / 1000 || 0.016);
   state.lastTs = ts;
 
@@ -597,29 +669,34 @@ function frame(ts) {
   drawComets();
   drawRocket();
 
-  if (state.running) requestAnimationFrame(frame);
+  requestAnimationFrame(frame);
 }
 
 function endGame() {
   state.running = false;
   state.gameOver = true;
+  state.paused = false;
   renderStartPanelForGameOver();
   startPanel.style.display = "grid";
+  stopBtn.style.display = "none";
   showMessage("Mission failed. Restart when ready.", 3200);
 }
 
 function resetForNewGame() {
+  const selected = difficultySelect.value in DIFFICULTIES ? difficultySelect.value : "medium";
   state.running = false;
   state.gameOver = false;
+  state.paused = false;
+  state.difficulty = selected;
   state.lastTs = 0;
   state.startTs = 0;
   state.starsCollected = 0;
   state.bumps = 0;
-  state.lives = 3;
+  state.lives = getSettings().lives;
   state.level = 1;
   state.lastAsteroidSpawnTs = 0;
   state.lastCometSpawnTs = 0;
-  state.nextLevelTs = 22000;
+  state.nextLevelTs = getSettings().levelDurationMs;
   state.lastCaptainMsgBucket = -1;
   if (state.messageTimeout) clearTimeout(state.messageTimeout);
   motivationMsg.classList.remove("visible");
@@ -640,16 +717,43 @@ function startGame() {
   state.lastAsteroidSpawnTs = state.lastTs;
   state.lastCometSpawnTs = state.lastTs;
   startPanel.style.display = "none";
+  stopBtn.style.display = "inline-flex";
   startAudio();
-  showMessage("Mission started. Catch stars and dodge comets!", 2800);
+  showMessage(`Mission started (${state.difficulty}). Catch stars and dodge comets!`, 2800);
   requestAnimationFrame(frame);
 }
 
-startBtn.addEventListener("click", startGame);
+function pauseGame() {
+  if (!state.running) return;
+  state.running = false;
+  state.paused = true;
+  renderStartPanelForPause();
+  startPanel.style.display = "grid";
+  stopBtn.style.display = "none";
+  showMessage("Paused", 1200);
+}
+
+function resumeGame() {
+  if (!state.paused) return;
+  state.running = true;
+  state.paused = false;
+  state.lastTs = performance.now();
+  startPanel.style.display = "none";
+  stopBtn.style.display = "inline-flex";
+  showMessage("Mission resumed!", 1200);
+  requestAnimationFrame(frame);
+}
+
+startBtn.addEventListener("click", () => {
+  if (state.paused) resumeGame();
+  else startGame();
+});
+stopBtn.addEventListener("click", pauseGame);
 
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 renderStartPanelForIntro();
+stopBtn.style.display = "none";
 updateHud();
 resetEntities();
 
