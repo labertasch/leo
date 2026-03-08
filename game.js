@@ -53,8 +53,8 @@ const planets = [
 
 function resizeCanvas() {
   const rect = canvas.getBoundingClientRect();
-  canvas.width = Math.max(980, Math.floor(rect.width));
-  canvas.height = Math.max(560, Math.floor(rect.height));
+  canvas.width = Math.max(320, Math.floor(rect.width));
+  canvas.height = Math.max(320, Math.floor(rect.height));
 
   rocket.x = Math.min(rocket.x, canvas.width - 50);
   rocket.y = Math.min(rocket.y, canvas.height - 50);

@@ -1,0 +1,19 @@
+{
+  "name": "Rocket Playground: Solar Kids",
+  "short_name": "Rocket Kids",
+  "description": "A kid-friendly rocket game with planets, stars, and space adventure.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#081228",
+  "theme_color": "#081228",
+  "icons": [
+    {
+      "src": "./assets/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

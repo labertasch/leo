@@ -6,6 +6,12 @@ A browser game for young kids: fly a rocket in space, visit the solar system, an
 
 Open `index.html` in a browser.
 
+## PWA / Mobile Install
+
+- Android (Chrome): open the deployed site and tap `Install app`.
+- iPhone (Safari): open the deployed site, tap `Share`, then `Add to Home Screen`.
+- Launching from the home screen opens fullscreen and works offline after first load.
+
 ## Controls
 
 - Keyboard: `Arrow Keys` or `WASD`
