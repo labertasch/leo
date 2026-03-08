@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rocket Playground: Solar Kids</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="hud-top">
+        <h1>Rocket Playground: Solar Kids</h1>
+        <div class="hud-stats">
+          <span>Stars: <strong id="starsCount">0</strong></span>
+          <span>Friendly Bumps: <strong id="bumpsCount">0</strong></span>
+        </div>
+      </header>
+
+      <canvas id="gameCanvas" width="1280" height="720" aria-label="Rocket game canvas"></canvas>
+
+      <section class="panel" id="startPanel">
+        <h2>Fly To The Stars</h2>
+        <p>Keyboard: Arrow keys or WASD</p>
+        <p>Mouse: Move pointer and rocket follows it</p>
+        <p>Collect stars, avoid asteroids, and wave to every planet.</p>
+        <button id="startBtn">Start Mission</button>
+      </section>
+    </main>
+
+    <script src="./game.js"></script>
+  </body>
+</html>

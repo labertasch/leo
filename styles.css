@@ -1,0 +1,122 @@
+:root {
+  --ink: #102440;
+  --panel: rgba(8, 19, 39, 0.76);
+  --line: rgba(175, 226, 255, 0.25);
+  --sun: #ffb84d;
+  --neon: #5cf2ff;
+  --warm: #ff7f50;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  min-height: 100%;
+  font-family: "Baloo 2", cursive;
+  color: #eaf8ff;
+  background:
+    radial-gradient(circle at 15% 20%, #223a7a 0, #0e1a39 34%, #060b1e 68%),
+    linear-gradient(130deg, #060b1e, #081228 40%, #0b1d34);
+}
+
+.app {
+  width: min(1200px, 100vw);
+  margin: 0 auto;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  position: relative;
+}
+
+.hud-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(15, 30, 58, 0.5);
+  backdrop-filter: blur(3px);
+}
+
+.hud-top h1 {
+  margin: 0;
+  font-size: clamp(1.2rem, 2.2vw, 1.8rem);
+  letter-spacing: 0.03em;
+  color: #fff4dd;
+}
+
+.hud-stats {
+  display: flex;
+  gap: 14px;
+  font-size: clamp(1rem, 1.8vw, 1.2rem);
+}
+
+#gameCanvas {
+  width: 100%;
+  height: min(75vh, 720px);
+  border-radius: 18px;
+  border: 2px solid rgba(146, 214, 255, 0.35);
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.45);
+  background: rgba(4, 10, 22, 0.82);
+}
+
+.panel {
+  position: absolute;
+  inset: 92px 18px 18px;
+  margin: auto;
+  max-width: 480px;
+  max-height: 340px;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  display: grid;
+  gap: 8px;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+}
+
+.panel h2 {
+  margin: 0;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  color: var(--sun);
+}
+
+.panel p {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  color: #04213f;
+  background: linear-gradient(90deg, var(--sun), #ffd58b);
+  box-shadow: 0 6px 15px rgba(255, 193, 94, 0.35);
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 800px) {
+  .panel {
+    inset: 100px 10px 10px;
+    max-height: 360px;
+  }
+
+  #gameCanvas {
+    height: 68vh;
+  }
+}
