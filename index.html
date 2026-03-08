@@ -9,8 +9,8 @@
     <meta name="theme-color" content="#081228" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Rocket Kids" />
-    <title>Rocket Playground: Solar Kids</title>
+    <meta name="apple-mobile-web-app-title" content="Solar Kids" />
+    <title>Solar Kids For Leo Teoman Taş</title>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -23,22 +23,24 @@
   </head>
   <body>
     <main class="app">
-      <header class="hud-top">
-        <h1>Rocket Playground: Solar Kids</h1>
-        <div class="hud-stats">
-          <span>Stars: <strong id="starsCount">0</strong></span>
-          <span>Friendly Bumps: <strong id="bumpsCount">0</strong></span>
-        </div>
-      </header>
+      <section class="game-stage">
+        <canvas id="gameCanvas" width="1280" height="720" aria-label="Rocket game canvas"></canvas>
 
-      <canvas id="gameCanvas" width="1280" height="720" aria-label="Rocket game canvas"></canvas>
+        <header class="hud-top">
+          <h1>Solar Kids For Leo Teoman Taş</h1>
+          <div class="hud-stats">
+            <span>Stars: <strong id="starsCount">0</strong></span>
+            <span>Friendly Bumps: <strong id="bumpsCount">0</strong></span>
+          </div>
+        </header>
 
-      <section class="panel" id="startPanel">
-        <h2>Fly To The Stars</h2>
-        <p>Keyboard: Arrow keys or WASD</p>
-        <p>Mouse: Move pointer and rocket follows it</p>
-        <p>Collect stars, avoid asteroids, and wave to every planet.</p>
-        <button id="startBtn">Start Mission</button>
+        <section class="panel" id="startPanel">
+          <h2>Fly To The Stars</h2>
+          <p>Keyboard: Arrow keys or WASD</p>
+          <p>Mouse: Move pointer and rocket follows it</p>
+          <p>Collect stars, avoid asteroids, and wave to every planet.</p>
+          <button id="startBtn">Start Mission</button>
+        </section>
       </section>
     </main>
 

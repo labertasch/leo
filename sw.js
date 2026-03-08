@@ -1,4 +1,4 @@
-const CACHE_NAME = "rocket-kids-v1";
+const CACHE_NAME = "rocket-kids-v2";
 const ASSETS = [
   "./",
   "./index.html",
