@@ -1,6 +1,5 @@
-const CACHE_NAME = "rocket-kids-v2";
+const CACHE_NAME = "rocket-kids-v3";
 const ASSETS = [
-  "./",
   "./index.html",
   "./styles.css",
   "./game.js",
@@ -12,7 +11,20 @@ const ASSETS = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches
+      .open(CACHE_NAME)
+      .then((cache) =>
+        Promise.allSettled(
+          ASSETS.map((asset) => {
+            const url = new URL(asset, self.location.origin);
+            if (url.protocol !== "https:" && url.hostname !== "localhost") {
+              return Promise.resolve();
+            }
+            return cache.add(url.href);
+          })
+        )
+      )
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -33,6 +45,9 @@ self.addEventListener("fetch", (event) => {
       if (cached) return cached;
       return fetch(event.request)
         .then((response) => {
+          if (!response || response.status !== 200 || response.type !== "basic") {
+            return response;
+          }
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
           return response;

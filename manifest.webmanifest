@@ -2,7 +2,7 @@
   "name": "Solar Kids For Leo Teoman Taş",
   "short_name": "Solar Kids",
   "description": "A kid-friendly rocket game with planets, stars, and space adventure.",
-  "start_url": "./",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "fullscreen",
   "orientation": "landscape",
