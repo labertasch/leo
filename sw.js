@@ -1,4 +1,4 @@
-const CACHE_NAME = "rocket-kids-v3";
+const CACHE_NAME = "rocket-kids-v4";
 const ASSETS = [
   "./index.html",
   "./styles.css",
@@ -39,20 +39,29 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  const requestUrl = new URL(event.request.url);
+  const isSameOrigin = requestUrl.origin === self.location.origin;
+
+  if (!isSameOrigin) {
+    event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
+    return;
+  }
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request)
-        .then((response) => {
-          if (!response || response.status !== 200 || response.type !== "basic") {
-            return response;
-          }
+    fetch(event.request)
+      .then((response) => {
+        if (response && response.status === 200 && response.type === "basic") {
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-          return response;
+        }
+        return response;
+      })
+      .catch(() =>
+        caches.match(event.request).then((cached) => {
+          if (cached) return cached;
+          if (event.request.mode === "navigate") return caches.match("./index.html");
+          return new Response("Offline", { status: 503, statusText: "Offline" });
         })
-        .catch(() => caches.match("./index.html"));
-    })
+      )
   );
 });
