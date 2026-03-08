@@ -3,14 +3,28 @@ const ctx = canvas.getContext("2d");
 
 const starsLabel = document.getElementById("starsCount");
 const bumpsLabel = document.getElementById("bumpsCount");
+const levelLabel = document.getElementById("levelCount");
+const livesLabel = document.getElementById("livesCount");
+const motivationMsg = document.getElementById("motivationMsg");
 const startPanel = document.getElementById("startPanel");
 const startBtn = document.getElementById("startBtn");
+const panelTitle = startPanel.querySelector("h2");
+const panelLines = Array.from(startPanel.querySelectorAll("p"));
 
 const state = {
   running: false,
+  gameOver: false,
   lastTs: 0,
+  startTs: 0,
   starsCollected: 0,
   bumps: 0,
+  lives: 3,
+  level: 1,
+  lastAsteroidSpawnTs: 0,
+  lastCometSpawnTs: 0,
+  nextLevelTs: 22000,
+  messageTimeout: null,
+  lastCaptainMsgBucket: -1,
 };
 
 const input = {
@@ -31,6 +45,8 @@ const rocket = {
 
 const collectibles = [];
 const asteroids = [];
+const comets = [];
+
 const starsSky = Array.from({ length: 140 }, () => ({
   x: Math.random() * canvas.width,
   y: Math.random() * canvas.height,
@@ -51,36 +67,13 @@ const planets = [
   { name: "Neptune", x: 1120, y: 196, r: 27, c1: "#668cff", c2: "#4156b8" },
 ];
 
-function resizeCanvas() {
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = Math.max(320, Math.floor(rect.width));
-  canvas.height = Math.max(320, Math.floor(rect.height));
-
-  rocket.x = Math.min(rocket.x, canvas.width - 50);
-  rocket.y = Math.min(rocket.y, canvas.height - 50);
-}
-
-function spawnCollectible() {
-  collectibles.push({
-    x: Math.random() * (canvas.width - 120) + 60,
-    y: Math.random() * (canvas.height - 120) + 80,
-    r: 12,
-    pulse: Math.random() * Math.PI,
-  });
-}
-
-function spawnAsteroid() {
-  asteroids.push({
-    x: Math.random() * (canvas.width - 80) + 40,
-    y: Math.random() * (canvas.height - 80) + 50,
-    r: Math.random() * 10 + 20,
-    vx: (Math.random() - 0.5) * 45,
-    vy: (Math.random() - 0.5) * 45,
-  });
-}
-
-for (let i = 0; i < 8; i += 1) spawnCollectible();
-for (let i = 0; i < 6; i += 1) spawnAsteroid();
+const funnyMessages = [
+  "Great job, Space Captain!",
+  "Leo turbo mode activated!",
+  "Asteroid dodger level: pro.",
+  "Taş power keeps this ship flying.",
+  "Moon says: keep going!",
+];
 
 let audioCtx;
 let masterGainNode;
@@ -96,6 +89,113 @@ engineLoop.loop = true;
 engineLoop.preload = "auto";
 engineLoop.volume = 0.08;
 engineLoop.playbackRate = 0.85;
+
+function showMessage(text, duration = 2600) {
+  if (!motivationMsg) return;
+  motivationMsg.textContent = text;
+  motivationMsg.classList.add("visible");
+  if (state.messageTimeout) clearTimeout(state.messageTimeout);
+  state.messageTimeout = setTimeout(() => {
+    motivationMsg.classList.remove("visible");
+  }, duration);
+}
+
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = Math.max(320, Math.floor(rect.width));
+  canvas.height = Math.max(320, Math.floor(rect.height));
+  rocket.x = Math.min(rocket.x, canvas.width - 50);
+  rocket.y = Math.min(rocket.y, canvas.height - 50);
+}
+
+function spawnCollectible() {
+  collectibles.push({
+    x: Math.random() * (canvas.width - 120) + 60,
+    y: Math.random() * (canvas.height - 140) + 100,
+    r: 12,
+    pulse: Math.random() * Math.PI,
+  });
+}
+
+function spawnAsteroid() {
+  const levelSpeedFactor = 1 + (state.level - 1) * 0.16;
+  const speedBase = 40 + Math.random() * 40;
+  const angle = Math.random() * Math.PI * 2;
+  asteroids.push({
+    x: Math.random() * (canvas.width - 80) + 40,
+    y: Math.random() * (canvas.height - 120) + 90,
+    r: Math.random() * 10 + 20,
+    vx: Math.cos(angle) * speedBase * levelSpeedFactor,
+    vy: Math.sin(angle) * speedBase * levelSpeedFactor,
+  });
+}
+
+function spawnComet() {
+  const side = Math.floor(Math.random() * 4);
+  const margin = 50;
+  let x = 0;
+  let y = 0;
+
+  if (side === 0) {
+    x = -margin;
+    y = Math.random() * canvas.height;
+  } else if (side === 1) {
+    x = canvas.width + margin;
+    y = Math.random() * canvas.height;
+  } else if (side === 2) {
+    x = Math.random() * canvas.width;
+    y = -margin;
+  } else {
+    x = Math.random() * canvas.width;
+    y = canvas.height + margin;
+  }
+
+  const targetX = rocket.x + (Math.random() - 0.5) * 160;
+  const targetY = rocket.y + (Math.random() - 0.5) * 160;
+  const dx = targetX - x;
+  const dy = targetY - y;
+  const mag = Math.max(0.001, Math.hypot(dx, dy));
+  const speed = 210 + state.level * 22;
+
+  comets.push({
+    x,
+    y,
+    vx: (dx / mag) * speed,
+    vy: (dy / mag) * speed,
+    r: 14,
+  });
+}
+
+function resetEntities() {
+  collectibles.length = 0;
+  asteroids.length = 0;
+  comets.length = 0;
+  for (let i = 0; i < 8; i += 1) spawnCollectible();
+  for (let i = 0; i < 10; i += 1) spawnAsteroid();
+}
+
+function updateHud() {
+  starsLabel.textContent = String(state.starsCollected);
+  bumpsLabel.textContent = String(state.bumps);
+  levelLabel.textContent = String(state.level);
+  livesLabel.textContent = String(state.lives);
+}
+
+function renderStartPanelForIntro() {
+  panelTitle.textContent = "Fly To The Stars";
+  panelLines[0].textContent = "Keyboard: Arrow keys or WASD";
+  panelLines[1].textContent = "Mouse: Move pointer and rocket follows it";
+  panelLines[2].textContent = "Collect stars, avoid asteroids, dodge comets.";
+  startBtn.textContent = "Start Mission";
+}
+
+function renderStartPanelForGameOver() {
+  panelTitle.textContent = "Game Over";
+  panelLines[0].textContent = `You reached Level ${state.level} and collected ${state.starsCollected} stars.`;
+  panelLines[1].textContent = "Comets hit 3 times. Mission ended.";
+  panelLines[2].textContent = "Press restart for another run.";
+  startBtn.textContent = "Restart Mission";
+}
 
 function beep({ freq = 440, type = "sine", duration = 0.12, gain = 0.08, slide = 0 }) {
   if (!audioCtx) return;
@@ -123,9 +223,8 @@ function startAudio() {
     masterGainNode.gain.value = 0.9;
     masterGainNode.connect(audioCtx.destination);
   }
-  if (audioCtx.state === "suspended") {
-    audioCtx.resume();
-  }
+  if (audioCtx.state === "suspended") audioCtx.resume();
+
   if (!loopsStarted) {
     atmosphereLoop.currentTime = 0;
     engineLoop.currentTime = 0;
@@ -156,13 +255,9 @@ function updateEngineSound() {
     input.keys.has("d");
   const throttle = Math.min(1, movingNorm + (hasThrustInput ? 0.45 : 0));
 
-  const engineGain = 0.045 + throttle * 0.18;
-  const engineRate = 0.74 + throttle * 0.68;
-  const atmosphereGain = 0.23 + (1 - throttle) * 0.2;
-
-  engineLoop.volume = Math.min(0.24, engineGain);
-  engineLoop.playbackRate = Math.min(1.5, engineRate);
-  atmosphereLoop.volume = Math.min(0.5, atmosphereGain);
+  engineLoop.volume = Math.min(0.24, 0.045 + throttle * 0.18);
+  engineLoop.playbackRate = Math.min(1.5, 0.74 + throttle * 0.68);
+  atmosphereLoop.volume = Math.min(0.5, 0.23 + (1 - throttle) * 0.2);
 }
 
 function drawBackground(t) {
@@ -262,6 +357,36 @@ function drawAsteroids() {
   });
 }
 
+function drawComets() {
+  comets.forEach((c) => {
+    const angle = Math.atan2(c.vy, c.vx);
+    const tail = 28;
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.rotate(angle);
+
+    ctx.beginPath();
+    ctx.moveTo(-tail, 0);
+    ctx.lineTo(-8, -7);
+    ctx.lineTo(-8, 7);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(255, 122, 78, 0.5)";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(0, 0, c.r, 0, Math.PI * 2);
+    ctx.fillStyle = "#ff7d4f";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(2, -2, c.r * 0.45, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffd18f";
+    ctx.fill();
+
+    ctx.restore();
+  });
+}
+
 function drawRocket() {
   ctx.save();
   ctx.translate(rocket.x, rocket.y);
@@ -310,10 +435,10 @@ function updateRocket(dt) {
   let ax = 0;
   let ay = 0;
 
-  if (input.keys.has("ArrowUp") || input.keys.has("w")) ay -= thrust;
-  if (input.keys.has("ArrowDown") || input.keys.has("s")) ay += thrust;
-  if (input.keys.has("ArrowLeft") || input.keys.has("a")) ax -= thrust;
-  if (input.keys.has("ArrowRight") || input.keys.has("d")) ax += thrust;
+  if (input.keys.has("arrowup") || input.keys.has("w")) ay -= thrust;
+  if (input.keys.has("arrowdown") || input.keys.has("s")) ay += thrust;
+  if (input.keys.has("arrowleft") || input.keys.has("a")) ax -= thrust;
+  if (input.keys.has("arrowright") || input.keys.has("d")) ax += thrust;
 
   if (input.mouseActive) {
     const dx = input.mouseX - rocket.x;
@@ -327,10 +452,8 @@ function updateRocket(dt) {
 
   rocket.vx += ax * dt;
   rocket.vy += ay * dt;
-
   rocket.vx *= 0.94;
   rocket.vy *= 0.94;
-
   rocket.x += rocket.vx * dt;
   rocket.y += rocket.vy * dt;
   keepInBounds();
@@ -344,6 +467,14 @@ function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
+function applyFriendlyBump(a) {
+  const dx = rocket.x - a.x;
+  const dy = rocket.y - a.y;
+  const mag = Math.max(0.001, Math.hypot(dx, dy));
+  rocket.vx = (dx / mag) * 190;
+  rocket.vy = (dy / mag) * 190;
+}
+
 function handleCollisions() {
   for (let i = collectibles.length - 1; i >= 0; i -= 1) {
     const c = collectibles[i];
@@ -353,21 +484,35 @@ function handleCollisions() {
       state.starsCollected += 1;
       starsLabel.textContent = String(state.starsCollected);
       beep({ freq: 560, type: "triangle", duration: 0.1, gain: 0.1, slide: 180 });
+      if (state.starsCollected % 8 === 0) showMessage("Star streak! You are a super pilot.");
     }
   }
 
   asteroids.forEach((a) => {
     if (distance(rocket, a) < rocket.radius + a.r) {
-      const dx = rocket.x - a.x;
-      const dy = rocket.y - a.y;
-      const mag = Math.max(0.001, Math.hypot(dx, dy));
-      rocket.vx = (dx / mag) * 190;
-      rocket.vy = (dy / mag) * 190;
+      applyFriendlyBump(a);
       state.bumps += 1;
       bumpsLabel.textContent = String(state.bumps);
       beep({ freq: 190, type: "square", duration: 0.14, gain: 0.08, slide: -80 });
+      if (state.bumps % 5 === 0) showMessage("Bump city. Try zig-zag flying!", 2400);
     }
   });
+
+  for (let i = comets.length - 1; i >= 0; i -= 1) {
+    const c = comets[i];
+    if (distance(rocket, c) < rocket.radius + c.r) {
+      comets.splice(i, 1);
+      state.lives -= 1;
+      livesLabel.textContent = String(Math.max(0, state.lives));
+      applyFriendlyBump(c);
+      beep({ freq: 130, type: "sawtooth", duration: 0.2, gain: 0.12, slide: -40 });
+      if (state.lives > 0) {
+        showMessage(`Comet hit! ${state.lives} lives left.`, 2600);
+      } else {
+        endGame();
+      }
+    }
+  }
 }
 
 function updateAsteroids(dt) {
@@ -380,15 +525,58 @@ function updateAsteroids(dt) {
   });
 }
 
-function drawIntroText() {
-  if (!state.running) return;
+function updateComets(dt) {
+  for (let i = comets.length - 1; i >= 0; i -= 1) {
+    const c = comets[i];
+    c.x += c.vx * dt;
+    c.y += c.vy * dt;
+
+    if (
+      c.x < -120 ||
+      c.x > canvas.width + 120 ||
+      c.y < -120 ||
+      c.y > canvas.height + 120
+    ) {
+      comets.splice(i, 1);
+    }
+  }
+}
+
+function updateDifficulty(ts) {
+  const elapsed = ts - state.startTs;
+  const targetAsteroids = Math.min(24, 10 + (state.level - 1) * 2);
+
+  if (asteroids.length < targetAsteroids && ts - state.lastAsteroidSpawnTs > 1500) {
+    spawnAsteroid();
+    state.lastAsteroidSpawnTs = ts;
+  }
+
+  const cometInterval = Math.max(5000, 12000 - (state.level - 1) * 700);
+  if (ts - state.lastCometSpawnTs > cometInterval) {
+    spawnComet();
+    state.lastCometSpawnTs = ts;
+    showMessage("Hostile comet incoming!", 1800);
+  }
+
+  if (elapsed >= state.nextLevelTs) {
+    state.level += 1;
+    levelLabel.textContent = String(state.level);
+    asteroids.forEach((a) => {
+      a.vx *= 1.08;
+      a.vy *= 1.08;
+    });
+    spawnAsteroid();
+    spawnAsteroid();
+    state.nextLevelTs += 20000;
+    showMessage(`Level ${state.level}! Faster space traffic!`, 3000);
+  }
+
   if (state.starsCollected >= 20) {
-    ctx.fillStyle = "rgba(18, 42, 72, 0.7)";
-    ctx.fillRect(canvas.width / 2 - 260, 20, 520, 46);
-    ctx.fillStyle = "#fff4d6";
-    ctx.font = "700 28px 'Baloo 2'";
-    ctx.textAlign = "center";
-    ctx.fillText("Great job, Space Captain!", canvas.width / 2, 52);
+    const bucket = Math.floor(state.starsCollected / 20);
+    if (bucket > state.lastCaptainMsgBucket) {
+      state.lastCaptainMsgBucket = bucket;
+      showMessage(funnyMessages[bucket % funnyMessages.length], 2400);
+    }
   }
 }
 
@@ -401,22 +589,59 @@ function frame(ts) {
   updateRocket(dt);
   updateEngineSound();
   updateAsteroids(dt);
+  updateComets(dt);
+  updateDifficulty(ts);
   handleCollisions();
   drawCollectibles(ts);
   drawAsteroids();
+  drawComets();
   drawRocket();
-  drawIntroText();
 
-  if (state.running) {
-    requestAnimationFrame(frame);
-  }
+  if (state.running) requestAnimationFrame(frame);
+}
+
+function endGame() {
+  state.running = false;
+  state.gameOver = true;
+  renderStartPanelForGameOver();
+  startPanel.style.display = "grid";
+  showMessage("Mission failed. Restart when ready.", 3200);
+}
+
+function resetForNewGame() {
+  state.running = false;
+  state.gameOver = false;
+  state.lastTs = 0;
+  state.startTs = 0;
+  state.starsCollected = 0;
+  state.bumps = 0;
+  state.lives = 3;
+  state.level = 1;
+  state.lastAsteroidSpawnTs = 0;
+  state.lastCometSpawnTs = 0;
+  state.nextLevelTs = 22000;
+  state.lastCaptainMsgBucket = -1;
+  if (state.messageTimeout) clearTimeout(state.messageTimeout);
+  motivationMsg.classList.remove("visible");
+  rocket.x = canvas.width * 0.45;
+  rocket.y = canvas.height * 0.5;
+  rocket.vx = 0;
+  rocket.vy = 0;
+  rocket.angle = 0;
+  resetEntities();
+  updateHud();
 }
 
 function startGame() {
+  resetForNewGame();
   state.running = true;
   state.lastTs = performance.now();
+  state.startTs = state.lastTs;
+  state.lastAsteroidSpawnTs = state.lastTs;
+  state.lastCometSpawnTs = state.lastTs;
   startPanel.style.display = "none";
   startAudio();
+  showMessage("Mission started. Catch stars and dodge comets!", 2800);
   requestAnimationFrame(frame);
 }
 
@@ -424,6 +649,9 @@ startBtn.addEventListener("click", startGame);
 
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
+renderStartPanelForIntro();
+updateHud();
+resetEntities();
 
 window.addEventListener("keydown", (e) => {
   input.keys.add(e.key.toLowerCase());
